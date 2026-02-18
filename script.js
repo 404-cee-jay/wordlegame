@@ -173,6 +173,58 @@ function initialze() {
             }
 
     });
+
+    // Function to handle key presses from the on-screen keyboard
+    function handleKeyPress(key) {
+    if (gameOver) return;
+
+    if (key === "⌫" || key === "Backspace") {
+        if (col > 0) {
+            col--;
+            document.getElementById(row + "-" + col).innerText = "";
+        }
+    } else if (key === "Enter") {
+        if (col === width) {
+            update();
+            
+            // Check for hint after the 4th guess
+            if (row === 3 && !gameOver) {
+                showHint();
+            }
+            
+            row++;
+            col = 0;
+        }
+    } else if (key.length === 1 && key >= "A" && key <= "Z") {
+        if (col < width) {
+            document.getElementById(row + "-" + col).innerText = key;
+            col++;
+        }
+    }
+}
+
+ // Create an on-screen keyboard for mobile users , Renders the keys
+    const layout = [
+    "QWERTYUIOP".split(""),
+    "ASDFGHJKL".split(""),
+    ["Enter", ..."ZXCVBNM".split(""), "⌫"]
+];
+
+layout.forEach(rowArr => {
+    let rowDiv = document.createElement("div");
+    rowDiv.classList.add("keyboard-row");
+    
+    rowArr.forEach(key => {
+        let keyBtn = document.createElement("div");
+        keyBtn.classList.add("key");
+        keyBtn.innerText = key;
+        if (key === "Enter" || key === "⌫") keyBtn.classList.add("large");
+        
+        keyBtn.addEventListener("click", () => handleKeyPress(key));
+        rowDiv.appendChild(keyBtn);
+    });
+    document.getElementById("keyboard-container").appendChild(rowDiv);
+});
 }
 
 // Function to display the hint after 4 guesses
@@ -213,25 +265,38 @@ function update() {
             if (word[c] === letter) {
                 tile.classList.add("correct");
                 correctCount++;
+                updateKeyboard(letter, "correct");
             } else if (word.includes(letter) && letterCount[letter] > 0) {
                 tile.classList.add("present");
                 letterCount[letter]--;
+                updateKeyboard(letter, "present");
             } else {
                 tile.classList.add("absent");
+                updateKeyboard(letter, "absent");
             }
 
             // Check win condition after the last tile flips
-            /*if (c === width - 1) {
-                setTimeout(() => {
-                    if (correctCount === width) {
-                        gameOver = true;
-                        document.getElementById("answer").innerText = "Correct!";
-                    } else if (row === height - 1) {
-                        gameOver = true;
-                        document.getElementById("answer").innerText = "The word was " + word;
-                    }
-                }, 100);
-            }*/
+            
         }, c * 200); // 200ms gap between each tile
+    }
+
+
+
+}
+
+// Function to update the on-screen keyboard colors based on letter status
+function updateKeyboard(letter, status) {
+    const keys = document.getElementsByClassName("key");
+    for (let k of keys) {
+        if (k.innerText === letter) {
+            // Only upgrade color (don't turn a 'correct' key back to 'present')
+            if (status === "correct") {
+                k.classList.add("correct");
+            } else if (status === "present" && !k.classList.contains("correct")) {
+                k.classList.add("present");
+            } else if (status === "absent" && !k.classList.contains("correct") && !k.classList.contains("present")) {
+                k.classList.add("absent");
+            }
+        }
     }
 }
