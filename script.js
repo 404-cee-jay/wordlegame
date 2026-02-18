@@ -1,4 +1,39 @@
 
+const WORD_LIST = [
+    { word: "APPLE", hint: "A fruit that supposedly fell on Newton's head." },
+    { word: "SPACE", hint: "The final frontier where stars reside." },
+    { word: "BRAIN", hint: "The squishy computer inside your skull." },
+    { word: "GHOST", hint: "A spooky spirit that says 'Boo!'" }
+];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Calculate the day of the year (1-365) for the current date  
+const now = new Date();
+const start = new Date(now.getFullYear(), 0, 0);
+const diff = now - start;
+const oneDay = 1000 * 60 * 60 * 24;
+const dayOfYear = Math.floor(diff / oneDay);
+
+
+// 1Pick word based on day (loops back to start if list is short)
+const dailyEntry = WORD_LIST[dayOfYear % WORD_LIST.length];
+const word = dailyEntry.word;
+const hint = dailyEntry.hint;
+
 
 
 
@@ -25,7 +60,7 @@ var col = 0;
 // Flag to track whether the game has ended
 var gameOver = false;
 // The target word that the player needs to guess
-var word = "APPLE"; // This should be replaced with a random word from a list
+//var word = "APPLE"; // This should be replaced with a random word from a list
 
 // Set up a function to run when the page finishes loading
 window.onload = function() {
@@ -90,14 +125,45 @@ function initialze() {
 
             // Check if the Enter key was pressed
             else if (e.code == "Enter") {
+                // Don't allow enter if word isn't fully filled
+                if (col < width) return;
+                
                 // Call the update function to check the guess
                 update();
+                
+                // Check for hint after the 4th guess (row 3, since 0-indexed)
+                if (row === 3 && !gameOver) {
+                    showHint();
+                }
+                
                 // Move to the next row for the next guess
                 row += 1;
                 // Reset the column back to the start
-                col =0;
-
+                col = 0;
             }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             // Check if the game should end (player used all attempts without winning)
             if(!gameOver && row == height) {
                 // Set the game over flag to true
@@ -109,7 +175,17 @@ function initialze() {
     });
 }
 
+// Function to display the hint after 4 guesses
+function showHint() {
+    // Get the hint element from the HTML
+    const hintElement = document.getElementById("hint");
+    // Display the hint text for the current word
+    hintElement.innerText = "Hint: " + hint;
+    // Make the hint visible
+    hintElement.style.display = "block";
+}
 
+// Function to evaluate the current guess and update tile colors
 function update() {
     let guess = "";
     for (let c = 0; c < width; c++) {
@@ -145,14 +221,16 @@ function update() {
             }
 
             // Check win condition after the last tile flips
-           /* if (c === width - 1) {
-                if (correctCount === width) {
-                    gameOver = true;
-                    document.getElementById("answer").innerText = "Correct!";
-                } else if (row === height - 1) {
-                    gameOver = true;
-                    document.getElementById("answer").innerText = "The word was " + word;
-                }
+            /*if (c === width - 1) {
+                setTimeout(() => {
+                    if (correctCount === width) {
+                        gameOver = true;
+                        document.getElementById("answer").innerText = "Correct!";
+                    } else if (row === height - 1) {
+                        gameOver = true;
+                        document.getElementById("answer").innerText = "The word was " + word;
+                    }
+                }, 100);
             }*/
         }, c * 200); // 200ms gap between each tile
     }
