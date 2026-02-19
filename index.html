@@ -7,12 +7,99 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>WORDLE</h1>
+    <div class="header">
+        <h1>WORDLE</h1>
+        <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+    </div>
+    <p>Guess the 5-letter word in 6 tries!</p>
+    <div id="difficulty-badge" class="badge"></div>
+    <hr>
+    
     <div id="game-container">
         <div id="hint"></div>
         <div id="grid-section">
             <div id="grid"></div>
             <div id="keyboard"></div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="theme">Theme</button>
+                    <button class="tab-btn" data-tab="difficulty">Difficulty</button>
+                    <button class="tab-btn" data-tab="archive">Archive</button>
+                    <button class="tab-btn" data-tab="stats">Stats</button>
+                </div>
+
+                <!-- Theme Tab -->
+                <div id="theme-tab" class="tab-content active">
+                    <h3>Appearance</h3>
+                    <div class="toggle-container">
+                        <span>Dark Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Light Mode</span>
+                    </div>
+                </div>
+
+                <!-- Difficulty Tab -->
+                <div id="difficulty-tab" class="tab-content">
+                    <h3>Challenge Level</h3>
+                    <p class="info-text">Word complexity affects which words appear. Changes lock for 7 days.</p>
+                    <div id="lockout-warning" class="warning" style="display: none;"></div>
+                    <div class="difficulty-options">
+                        <label class="radio-option">
+                            <input type="radio" name="difficulty" value="easy">
+                            <div class="option-card">
+                                <div class="option-header">
+                                    <span class="diff-badge easy">Easy</span>
+                                </div>
+                                <p>Common 5-letter words</p>
+                            </div>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="difficulty" value="normal" checked>
+                            <div class="option-card">
+                                <div class="option-header">
+                                    <span class="diff-badge normal">Normal</span>
+                                </div>
+                                <p>Balanced word selection</p>
+                            </div>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="difficulty" value="hard">
+                            <div class="option-card">
+                                <div class="option-header">
+                                    <span class="diff-badge hard">Hard</span>
+                                </div>
+                                <p>Obscure & challenging words</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Archive Tab -->
+                <div id="archive-tab" class="tab-content">
+                    <h3>Word Archive</h3>
+                    <p class="info-text">Replay past daily challenges</p>
+                    <div id="archive-list" class="archive-list"></div>
+                </div>
+
+                <!-- Stats Tab -->
+                <div id="stats-tab" class="tab-content">
+                    <h3>Statistics</h3>
+                    <div id="stats-container" class="stats-container"></div>
+                </div>
+            </div>
         </div>
     </div>
 
