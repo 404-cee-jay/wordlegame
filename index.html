@@ -3,46 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wordle </title>
+    <title>Wordle Game</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1 id="title">Wordle Game</h1>
-    <hr>
-    <p>Guess the 5-letter word in 6 tries!</p>
-    <div id="game-board">
-        <!-- Game board will be generated here -->
+    <h1>WORDLE</h1>
+    <div id="game-container">
+        <div id="hint"></div>
+        <div id="grid-section">
+            <div id="grid"></div>
+            <div id="keyboard"></div>
+        </div>
     </div>
 
-    <div id="board"></div>
-
-    <br>
-
-    <div id="hint" style="display: none; color: #538d4e; font-weight: bold; margin: 10px 0;"></div>
-    
-    <h1 id="answer"></h1>
-
-    <div id="keyboard-container"></div>
-
- 
-
-     
-
-
-
-
-<script src="aiservice.js">
-    //js for calling the Ai
-
-</script>
-
-<script type="module" src="app.js"> 
-    //js for calling the Ai 
-</script>
-<script src="script.js">
-    //JavaScript code for the Wordle game will go here
-
-</script>
-
+    <script src="aiservice.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

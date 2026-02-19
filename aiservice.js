@@ -7,7 +7,6 @@ async function fetchDailyWord() {
         const today = new Date().toISOString().split('T')[0];
         const seed = today.split('-').join(''); // e.g., "20260219"
         
-        // Get random 5-letter words
         const response = await fetch('https://api.datamuse.com/words?sp=?????&max=100');
         const words = await response.json();
         
@@ -15,11 +14,9 @@ async function fetchDailyWord() {
             throw new Error('No words found');
         }
         
-        // Use date as seed for consistent daily word
         const index = parseInt(seed) % words.length;
         const wordObj = words[index];
         
-        // Get hint (definition)
         const defResponse = await fetch(`https://api.datamuse.com/words?sp=${wordObj.word}&md=d&max=1`);
         const defData = await defResponse.json();
         
@@ -29,7 +26,6 @@ async function fetchDailyWord() {
         };
     } catch (error) {
         console.error('Error fetching word:', error);
-        // Fallback
         return {
             word: "REACT",
             hint: "A JavaScript library for building user interfaces"

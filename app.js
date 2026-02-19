@@ -1,108 +1,165 @@
+let gameState = {
+    targetWord: "",
+    hint: "",
+    currentRow: 0,
+    guesses: ['', '', '', '', '', ''],
+    currentGuess: '',
+    gameOver: false
+};
 
-async function getDailyWordFromAI() {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // In a real app, you'd call your backend here to protect your API Key
-    // This is the logic the AI would follow:
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=YOUR_API_KEY', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{
-                parts: [{ text: `Generate a 5-letter word and hint for ${today} in JSON format.` }]
-            }]
-        })
-    });
+const KEYBOARD_ROWS = [
+    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+    ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⌫']
+];
 
-    const data = await response.json();
-    const result = JSON.parse(data.candidates[0].content.parts[0].text);
-    
-    return {
-        word: result.word.toUpperCase(),
-        hint: result.hint
-    };
+let keyboardState = {}; // Track letter states for keyboard colors
+
+// Initialize game
+async function initGame() {
+    const data = await fetchDailyWord();
+    gameState.targetWord = data.word;
+    gameState.hint = data.hint;
+    console.log('Target word:', data.word);
+    renderGrid();
+    renderKeyboard();
 }
 
-
-
-
-
-import React, { useRef } from 'react'
-import { Text, Float } from '@react-three/drei'
-
-export function ThreeDHint({ hint, visible }) {
-  if (!visible) return null;
-
-  return (
-    <Float speed={5} rotationIntensity={0.5} floatIntensity={0.5}>
-      <Text
-        fontSize={0.5}
-        color="#00ffcc"
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={5}
-        textAlign="center"
-        font="https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8p-8ad8z076Y2Ma29vhc.woff"
-      >
-        {hint}
-      </Text>
-    </Float>
-  )
-}
-
-
-
-import React, { useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { fetchDailyWord } from './aiService';
-import { ThreeDHint } from './ThreeDHint';
-
-function WordleGame() {
-    const [gameState, setGameState] = useState({
-        targetWord: "",
-        hint: "",
-        currentRow: 0,
-        showHint: false
-    });
-
-    // 1. Fetch AI word on load
-    useEffect(() => {
-        fetchDailyWord().then(data => {
-            setGameState(prev => ({
-                ...prev,
-                targetWord: data.word.toUpperCase(),
-                hint: data.hint
-            }));
-        });
-    }, []);
-
-    // 2. Logic to trigger hint on 4th guess
-    useEffect(() => {
-        if (gameState.currentRow === 3) {
-            setGameState(prev => ({ ...prev, showHint: true }));
-        }
-    }, [gameState.currentRow]);
-
-    return (
-        <div style={{ width: '100vw', height: '100vh', background: '#121213' }}>
-            {/* Standard UI for Wordle Grid Goes Here */}
-            <div id="grid"> {/* Your Grid Components */} </div>
-
-            {/* Three.js Canvas for the AI Hint */}
-            <Canvas camera={{ position: [0, 0, 5] }}>
-                <ambientLight intensity={0.5} />
-                <pointLight position={[10, 10, 10]} />
+// Render grid
+function renderGrid() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    
+    for (let row = 0; row < 6; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+        
+        for (let col = 0; col < 5; col++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            
+            // Show current guess
+            if (row === gameState.currentRow) {
+                cell.textContent = gameState.currentGuess[col] || '';
+                if (gameState.currentGuess[col]) {
+                    cell.classList.add('filled');
+                }
+            } else if (row < gameState.currentRow) {
+                const letter = gameState.guesses[row][col];
+                cell.textContent = letter;
                 
-                <ThreeDHint 
-                    hint={gameState.hint} 
-                    visible={gameState.showHint} 
-                />
-            </Canvas>
-        </div>
-    );
+                // Color coding with animation
+                if (letter === gameState.targetWord[col]) {
+                    cell.classList.add('correct');
+                    keyboardState[letter] = 'correct';
+                } else if (gameState.targetWord.includes(letter)) {
+                    cell.classList.add('present');
+                    if (keyboardState[letter] !== 'correct') {
+                        keyboardState[letter] = 'present';
+                    }
+                } else {
+                    cell.classList.add('absent');
+                    if (!keyboardState[letter]) {
+                        keyboardState[letter] = 'absent';
+                    }
+                }
+                cell.classList.add('flip');
+            }
+            
+            rowDiv.appendChild(cell);
+        }
+        grid.appendChild(rowDiv);
+    }
 }
 
-export default WordleGame;
+// Render keyboard
+function renderKeyboard() {
+    const keyboard = document.getElementById('keyboard');
+    keyboard.innerHTML = '';
+    
+    KEYBOARD_ROWS.forEach(row => {
+        const keyRow = document.createElement('div');
+        keyRow.className = 'keyboard-row';
+        
+        row.forEach(key => {
+            const keyButton = document.createElement('button');
+            keyButton.className = 'key';
+            keyButton.textContent = key;
+            
+            // Apply keyboard state colors
+            if (keyboardState[key]) {
+                keyButton.classList.add(keyboardState[key]);
+            }
+            
+            if (key === 'ENTER' || key === '⌫') {
+                keyButton.classList.add('wide-key');
+            }
+            
+            keyButton.addEventListener('click', () => handleKeyClick(key));
+            keyRow.appendChild(keyButton);
+        });
+        
+        keyboard.appendChild(keyRow);
+    });
+}
 
+// Handle key clicks
+function handleKeyClick(key) {
+    if (gameState.gameOver) return;
+    
+    if (key === 'ENTER') {
+        if (gameState.currentGuess.length === 5) {
+            submitGuess();
+        }
+    } else if (key === '⌫') {
+        gameState.currentGuess = gameState.currentGuess.slice(0, -1);
+        renderGrid();
+    } else {
+        if (gameState.currentGuess.length < 5) {
+            gameState.currentGuess += key;
+            renderGrid();
+        }
+    }
+}
 
-// In your index.js or main entry file
+// Handle physical keyboard
+document.addEventListener('keydown', (e) => {
+    if (gameState.gameOver) return;
+
+    if (e.key === 'Enter') {
+        handleKeyClick('ENTER');
+    } else if (e.key === 'Backspace') {
+        handleKeyClick('⌫');
+    } else if (/^[a-zA-Z]$/.test(e.key)) {
+        handleKeyClick(e.key.toUpperCase());
+    }
+});
+
+// Submit guess
+function submitGuess() {
+    gameState.guesses[gameState.currentRow] = gameState.currentGuess;
+    
+    const won = gameState.currentGuess === gameState.targetWord;
+    gameState.currentRow++;
+    
+    // Show hint on 4th guess
+    if (gameState.currentRow === 4 && !won) {
+        document.getElementById('hint').textContent = `💡 Hint: ${gameState.hint}`;
+        document.getElementById('hint').style.display = 'block';
+    }
+    
+    gameState.currentGuess = '';
+    renderGrid();
+    renderKeyboard();
+    
+    if (won) {
+        gameState.gameOver = true;
+        setTimeout(() => alert('🎉 Congratulations! You won!'), 500);
+    } else if (gameState.currentRow === 6) {
+        gameState.gameOver = true;
+        setTimeout(() => alert(`😔 Game Over! The word was: ${gameState.targetWord}`), 500);
+    }
+}
+
+// Start game
+initGame();
