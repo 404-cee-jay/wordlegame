@@ -73,11 +73,50 @@ h1 {
     color: var(--primary);
     margin: 30px 0;
     font-size: 42px;
-    text-shadow: 0 0 20px var(--primary-glow), 0 0 40px var(--primary-glow);
+    text-shadow: none;
     letter-spacing: 8px;
     font-weight: bold;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition: color 0.3s ease;
 }
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 10px;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.icon-btn {
+    padding: 8px 16px;
+    background: var(--key-bg-start);
+    border: 2px solid var(--cell-border);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 24px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.icon-btn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+#mode-indicator {
+    font-size: 14px;
+    font-weight: bold;
+}
+
 hr{
     padding:0 ;
     width: 50%;
@@ -128,8 +167,8 @@ p{
     font-weight: bold;
     color: var(--text-primary);
     background: linear-gradient(145deg, var(--cell-bg-start), var(--cell-bg-end));
-    box-shadow: 5px 5px 15px var(--cell-shadow-dark), -5px -5px 15px var(--cell-shadow-light);
-    border-radius: 8px;
+    box-shadow: 3px 3px 10px var(--cell-shadow-dark);
+    border-radius: 0;
     transition: all 0.3s ease;
 }
 
@@ -195,15 +234,15 @@ p{
     font-family: 'Courier New', Courier, monospace;
     font-size: 16px;
     font-weight: bold;
-    border-radius: 6px;
+    border-radius: 0;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 3px 3px 10px var(--cell-shadow-dark);
+    box-shadow: 2px 2px 8px var(--cell-shadow-dark);
 }
 
 .key:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 15px var(--key-hover-glow);
+    box-shadow: none;
     border-color: var(--primary);
 }
 
@@ -244,17 +283,12 @@ p{
     padding: 20px;
     background: var(--hint-bg);
     border: 2px solid var(--hint-border);
-    border-radius: 10px;
+    border-radius: 0;
     display: none;
-    animation: glow 2s ease-in-out infinite;
-    box-shadow: 0 0 20px var(--hint-glow);
+    animation: none;
+    box-shadow: none;
     line-height: 1.8;
     transition: all 0.3s ease;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px var(--hint-glow); }
-    50% { box-shadow: 0 0 30px var(--hint-glow); }
 }
 
 /* Responsive Design */
@@ -302,6 +336,97 @@ p{
         font-size: 12px; 
         width: 100%; 
     }
+}
+
+/* Custom Notification */
+.notification {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+.notification.active {
+    display: flex;
+}
+
+.notification-content {
+    background: var(--bg-gradient-start);
+    border: 3px solid var(--primary);
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    animation: slideDown 0.3s ease;
+}
+
+#notification-message {
+    color: var(--text-primary);
+    font-size: 18px;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.notification-btn {
+    padding: 12px 24px;
+    background: var(--primary);
+    border: 2px solid var(--primary);
+    color: white;
+    cursor: pointer;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.notification-btn:hover {
+    background: transparent;
+    color: var(--primary);
+}
+
+.notification-btn.secondary {
+    background: transparent;
+    color: var(--text-primary);
+    border-color: var(--cell-border);
+}
+
+.notification-btn.secondary:hover {
+    background: var(--cell-border);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Confetti Canvas */
+#confetti-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
 }
 
 /* Header with Settings Button */

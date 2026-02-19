@@ -2,6 +2,7 @@ let gameState = {
     targetWord: "",
     hint: "",
     difficulty: "normal",
+    gameMode: "classic",
     currentRow: 0,
     guesses: ['', '', '', '', '', ''],
     currentGuess: '',
@@ -25,7 +26,15 @@ function loadSettings() {
     if (saved) {
         const settings = JSON.parse(saved);
         gameState.difficulty = settings.difficulty || 'normal';
+        gameState.gameMode = settings.gameMode || 'classic';
         applyTheme(settings.theme || 'dark');
+        
+        // Update mode indicator
+        const indicator = document.getElementById('mode-indicator');
+        if (gameState.gameMode === 'endless') {
+            indicator.textContent = 'ENDLESS MODE - Play unlimited games!';
+        }
+        
         return settings;
     }
     return { theme: 'dark', difficulty: 'normal' };
@@ -203,7 +212,7 @@ function changeDifficulty(newDifficulty) {
     const lockout = getDifficultyLockout();
     
     if (lockout && Date.now() < lockout.lockedUntil && lockout.difficulty !== newDifficulty) {
-        alert('❌ Difficulty is locked! You cannot change it until the lockout expires.');
+        showNotification('Difficulty is locked! You cannot change it until the lockout expires.');
         checkDifficultyLockout(); // Restore correct selection
         return;
     }
@@ -241,38 +250,43 @@ async function initGame(replayData = null) {
         gameState.hint = "Replaying past challenge";
         gameState.difficulty = replayData.difficulty;
     } else {
-        // Normal daily mode
+        // Normal daily mode or endless mode
         gameState.isReplay = false;
         gameState.replayDate = null;
         
-        // Check if already played today
+        // Check if already played today (ONLY FOR DAILY MODE)
         const today = new Date().toISOString().split('T')[0];
-        const archive = getArchive();
-        const todayGame = archive.find(item => 
-            item.date === today && item.difficulty === gameState.difficulty
-        );
+        let todayGame = null;
+
+        if (gameState.gameMode !== 'endless') {
+            const archive = getArchive();
+            todayGame = archive.find(item => 
+                item.date === today && item.difficulty === gameState.difficulty
+            );
+        }
         
         if (todayGame) {
             // Show completed game
             gameState.targetWord = todayGame.word;
             gameState.hint = "Already completed today!";
-            gameState.guesses = [...todayGame.guesses];
+            gameState.guesses = todayGame.guesses ? [...todayGame.guesses] : [];
             while (gameState.guesses.length < 6) {
                 gameState.guesses.push('');
             }
-            gameState.currentRow = todayGame.attempts;
+            gameState.currentRow = todayGame.attempts || 6;
             gameState.gameOver = true;
             
             // Restore keyboard state
-            todayGame.guesses.forEach(guess => {
+            gameState.guesses.forEach(guess => {
+                if (!guess) return;
                 for (let i = 0; i < guess.length; i++) {
                     const letter = guess[i];
-                    if (letter === gameState.targetWord[i]) {
-                        keyboardState[letter] = 'correct';
-                    } else if (gameState.targetWord.includes(letter)) {
-                        if (keyboardState[letter] !== 'correct') {
-                            keyboardState[letter] = 'present';
-                        }
+                    if (gameState.targetWord.includes(letter)) {
+                         if (letter === gameState.targetWord[i]) {
+                             keyboardState[letter] = 'correct';
+                         } else if (keyboardState[letter] !== 'correct') {
+                             keyboardState[letter] = 'present';
+                         }
                     } else {
                         if (!keyboardState[letter]) {
                             keyboardState[letter] = 'absent';
@@ -286,7 +300,8 @@ async function initGame(replayData = null) {
             return;
         }
         
-        const data = await fetchDailyWord(gameState.difficulty);
+        const isEndless = gameState.gameMode === 'endless';
+        const data = await fetchDailyWord(gameState.difficulty, isEndless);
         gameState.targetWord = data.word;
         gameState.hint = data.hint;
     }
@@ -401,9 +416,9 @@ function submitGuess() {
     const won = gameState.currentGuess === gameState.targetWord;
     gameState.currentRow++;
     
-    // Show hint on 4th guess
-    if (gameState.currentRow === 4 && !won && !gameState.isReplay) {
-        document.getElementById('hint').textContent = `💡 Hint: ${gameState.hint}`;
+    // Show hint on 4th guess (only in classic mode)
+    if (gameState.currentRow === 4 && !won && gameState.gameMode === 'classic' && !gameState.isReplay) {
+        document.getElementById('hint').textContent = `HINT: ${gameState.hint}`;
         document.getElementById('hint').style.display = 'block';
     }
     
@@ -413,23 +428,100 @@ function submitGuess() {
     
     if (won) {
         gameState.gameOver = true;
-        saveToArchive({ won: true });
-        setTimeout(() => {
-            const msg = gameState.isReplay 
-                ? '🎉 Replay completed!' 
-                : '🎉 Congratulations! You won!';
-            alert(msg);
-        }, 500);
+        
+        if (gameState.gameMode === 'endless') {
+            // Update endless stats
+            updateEndlessStats(true);
+            triggerConfetti();
+            setTimeout(() => {
+                showNotification('SUCCESS! You won!', [
+                    { text: 'Play Again', callback: () => resetGame() },
+                    { text: 'Close', secondary: true }
+                ]);
+            }, 500);
+        } else {
+            saveToArchive({ won: true });
+            triggerConfetti();
+            setTimeout(() => {
+                const msg = gameState.isReplay 
+                    ? 'Replay completed!' 
+                    : 'Congratulations! You won!';
+                showNotification(msg);
+            }, 500);
+        }
     } else if (gameState.currentRow === 6) {
         gameState.gameOver = true;
-        saveToArchive({ won: false });
-        setTimeout(() => {
-            const msg = gameState.isReplay
-                ? `Replay Over! The word was: ${gameState.targetWord}`
-                : `😔 Game Over! The word was: ${gameState.targetWord}`;
-            alert(msg);
-        }, 500);
+        
+        if (gameState.gameMode === 'endless') {
+            updateEndlessStats(false);
+            setTimeout(() => {
+                showNotification(`Game Over! The word was: ${gameState.targetWord}`, [
+                    { text: 'Try Again', callback: () => resetGame() },
+                    { text: 'Close', secondary: true }
+                ]);
+            }, 500);
+        } else {
+            saveToArchive({ won: false });
+            setTimeout(() => {
+                const msg = gameState.isReplay
+                    ? `Replay ended. Word: ${gameState.targetWord}`
+                    : `Game Over! The word was: ${gameState.targetWord}`;
+                showNotification(msg);
+            }, 500);
+        }
     }
+}
+
+function performReset() {
+    gameState.currentRow = 0;
+    gameState.guesses = ['', '', '', '', '', ''];
+    gameState.currentGuess = '';
+    gameState.gameOver = false;
+    keyboardState = {};
+    
+    document.getElementById('hint').style.display = 'none';
+    
+    if (gameState.gameMode === 'endless') {
+        // Get new word for endless mode
+        initGame();
+    } else {
+        // Just reset the board for classic mode
+        renderGrid();
+        renderKeyboard();
+    }
+}
+
+// Reset Game Function
+function resetGame() {
+    if (gameState.gameMode === 'endless') {
+        // No confirmation needed in endless mode
+        performReset();
+    } else {
+        // Ask for confirmation in classic mode
+        showNotification('Are you sure you want to reset the current game?', [
+            { text: 'Yes, Reset', callback: () => performReset() },
+            { text: 'Cancel', secondary: true }
+        ]);
+    }
+}
+
+// Endless Mode Stats
+function updateEndlessStats(won) {
+    const stats = JSON.parse(localStorage.getItem('endlessStats') || '{"gamesPlayed": 0, "bestScore": 0}');
+    stats.gamesPlayed++;
+    
+    if (won) {
+        const score = 100 - (gameState.currentRow * 10); // Higher score for fewer guesses
+        if (score > stats.bestScore) {
+            stats.bestScore = score;
+        }
+    }
+    
+    localStorage.setItem('endlessStats', JSON.stringify(stats));
+}
+
+function getEndlessStats() {
+    return JSON.parse(localStorage.getItem('endlessStats') || '{"gamesPlayed": 0, "bestScore": 0}');
 }
 
 // ========== UI MANAGEMENT ==========
@@ -487,7 +579,7 @@ function renderArchive() {
                     <span style="filter: blur(5px);">${item.word}</span>
                     <button class="btn-small" onclick="revealWord('${item.date}', '${item.difficulty}')">Show</button>
                 </div>
-                <div class="archive-status">${item.won ? '✅ Won' : '❌ Lost'} - ${item.attempts} ${item.attempts === 1 ? 'try' : 'tries'}</div>
+                <div class="archive-status">${item.won ? 'Won' : 'Lost'} - ${item.attempts} ${item.attempts === 1 ? 'try' : 'tries'}</div>
                 <div class="guess-grid">
                     ${item.guesses.map(guess => {
                         let html = '';
@@ -531,6 +623,7 @@ function replayGame(date, difficulty) {
 function renderStats() {
     const statsContainer = document.getElementById('stats-container');
     const stats = getStats();
+    const endlessStats = getEndlessStats();
     const currentDiff = gameState.difficulty;
     const diffStats = stats[currentDiff];
     
@@ -539,6 +632,7 @@ function renderStats() {
         : 0;
     
     statsContainer.innerHTML = `
+        <h4 style="color: var(--text-primary); margin-bottom: 15px;">CLASSIC MODE (${currentDiff.toUpperCase()})</h4>
         <div class="stat-box">
             <span class="stat-value">${diffStats.played}</span>
             <div class="stat-label">Games Played</div>
@@ -555,7 +649,132 @@ function renderStats() {
             <span class="stat-value">${diffStats.maxStreak}</span>
             <div class="stat-label">Max Streak</div>
         </div>
+        
+        <hr style="margin: 30px 0; border-color: var(--hr-color);">
+        
+        <h4 style="color: var(--text-primary); margin-bottom: 15px;">ENDLESS MODE</h4>
+        <div class="stat-box">
+            <span class="stat-value">${endlessStats.gamesPlayed}</span>
+            <div class="stat-label">Games Played</div>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value">${endlessStats.bestScore}</span>
+            <div class="stat-label">Best Score</div>
+        </div>
     `;
+}
+
+// ========== NOTIFICATIONS ==========
+
+
+function showNotification(message, actions = []) {
+    const notification = document.getElementById('notification');
+    const msgEl = document.getElementById('notification-message');
+    const actionsEl = document.getElementById('notification-actions');
+    
+    if (!notification || !msgEl || !actionsEl) return;
+    
+    // Clear previous timeout if any
+    if (window.notificationTimeout) {
+        clearTimeout(window.notificationTimeout);
+        window.notificationTimeout = null;
+    }
+    
+    msgEl.textContent = message;
+    actionsEl.innerHTML = '';
+    
+    if (actions.length === 0) {
+        // Default close button if no actions provided
+        const btn = document.createElement('button');
+        btn.className = 'notification-btn secondary';
+        btn.textContent = 'Close';
+        btn.onclick = () => {
+            notification.classList.remove('active');
+        };
+        actionsEl.appendChild(btn);
+        
+        // Auto-hide after 3 seconds for simple messages
+        window.notificationTimeout = setTimeout(() => {
+            if (notification.classList.contains('active')) {
+                notification.classList.remove('active');
+            }
+        }, 3000);
+    } else {
+        actions.forEach(action => {
+            const btn = document.createElement('button');
+            btn.className = `notification-btn ${action.secondary ? 'secondary' : ''}`;
+            btn.textContent = action.text;
+            btn.onclick = () => {
+                notification.classList.remove('active');
+                if (action.callback) {
+                    // Small delay to allow UI to update before next action
+                    setTimeout(action.callback, 100);
+                }
+            };
+            actionsEl.appendChild(btn);
+        });
+    }
+    
+    notification.classList.add('active');
+}
+
+// ========== EFFECTS ==========
+
+function triggerConfetti() {
+    const canvas = document.getElementById('confetti-canvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.display = 'block';
+    
+    const particles = [];
+    const colors = ['#538d4e', '#b59f3b', '#ffffff', '#3a3a3c'];
+    
+    for (let i = 0; i < 200; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            speed: Math.random() * 3 + 2,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            size: Math.random() * 5 + 2,
+            angle: Math.random() * 6.28,
+            spin: Math.random() * 0.2 - 0.1
+        });
+    }
+    
+    let animationId;
+    
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        let active = false;
+        particles.forEach(p => {
+            p.y += p.speed;
+            p.x += Math.sin(p.angle);
+            p.angle += p.spin;
+            
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            
+            if (p.y < canvas.height) active = true;
+        });
+        
+        if (active) {
+            animationId = requestAnimationFrame(animate);
+        } else {
+            canvas.style.display = 'none';
+        }
+    }
+    
+    animate();
+    
+    // Stop after 5 seconds
+    setTimeout(() => {
+        cancelAnimationFrame(animationId);
+        canvas.style.display = 'none';
+    }, 5000);
 }
 
 // ========== EVENT LISTENERS ==========
@@ -588,6 +807,33 @@ document.querySelectorAll('input[name="difficulty"]').forEach(radio => {
     });
 });
 
+// Game mode selection
+document.querySelectorAll('input[name="gamemode"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const newMode = e.target.value;
+        gameState.gameMode = newMode;
+        
+        const settings = loadSettings();
+        settings.gameMode = newMode;
+        saveSettings(settings);
+        
+        // Update UI indicator
+        const indicator = document.getElementById('mode-indicator');
+        if (newMode === 'endless') {
+            indicator.textContent = 'ENDLESS MODE - Play unlimited games!';
+        } else {
+            indicator.textContent = 'CLASSIC MODE - Guess the 5-letter word in 6 tries!';
+        }
+        
+        // Start new game
+        resetGame();
+        closeSettings();
+    });
+});
+
+// Reset button
+document.getElementById('reset-btn').addEventListener('click', resetGame);
+
 // Handle physical keyboard
 document.addEventListener('keydown', (e) => {
     if (gameState.gameOver) return;
@@ -606,10 +852,12 @@ document.addEventListener('keydown', (e) => {
 // Load settings and start game
 const settings = loadSettings();
 gameState.difficulty = checkDifficultyLockout() || settings.difficulty;
+gameState.gameMode = settings.gameMode || 'classic';
 updateDifficultyBadge();
 
 // Set correct radio button
 document.querySelector(`input[name="difficulty"][value="${gameState.difficulty}"]`).checked = true;
+document.querySelector(`input[name="gamemode"][value="${gameState.gameMode}"]`).checked = true;
 
 // Make functions globally accessible for onclick handlers
 window.revealWord = revealWord;

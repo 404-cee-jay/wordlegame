@@ -1,9 +1,15 @@
 // aiService.js
-async function fetchDailyWord(difficulty = 'normal') {
+async function fetchDailyWord(difficulty = 'normal', isEndless = false) {
     try {
-        const today = new Date().toISOString().split('T')[0];
-        // Include difficulty in seed so same date = different word per difficulty
-        const seed = today.split('-').join('') + difficulty; 
+        let seed;
+        if (isEndless) {
+            // Random seed for endless mode
+            seed = Math.random().toString(36).substring(7);
+        } else {
+            // Consistent daily seed
+            const today = new Date().toISOString().split('T')[0];
+            seed = today.split('-').join('') + difficulty;
+        } 
         
         // Build API URL based on difficulty
         let apiUrl = 'https://api.datamuse.com/words?sp=?????&max=100';
@@ -33,7 +39,13 @@ async function fetchDailyWord(difficulty = 'normal') {
             }
         }
         
-        const index = Math.abs(hashCode(seed)) % filteredWords.length;
+        let index;
+        if (isEndless) {
+            index = Math.floor(Math.random() * filteredWords.length);
+        } else {
+            index = Math.abs(hashCode(seed)) % filteredWords.length;
+        }
+        
         const wordObj = filteredWords[index];
         
         const defResponse = await fetch(`https://api.datamuse.com/words?sp=${wordObj.word}&md=d&max=1`);
