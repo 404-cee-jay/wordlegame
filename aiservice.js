@@ -2,7 +2,7 @@
 const API_KEY = "YOUR_GEMINI_API_KEY";
 const MODEL_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-export async function fetchDailyWord() {
+async function fetchDailyWord() {
     try {
         const today = new Date().toISOString().split('T')[0];
         const seed = today.split('-').join(''); // e.g., "20260219"
