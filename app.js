@@ -769,14 +769,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// Difficulty selection
 document.querySelectorAll('input[name="difficulty"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
         changeDifficulty(e.target.value);
     });
 });
 
-// Game mode selection
 document.querySelectorAll('input[name="gamemode"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
         const newMode = e.target.value;
@@ -786,7 +784,6 @@ document.querySelectorAll('input[name="gamemode"]').forEach(radio => {
         settings.gameMode = newMode;
         saveSettings(settings);
         
-        // Update UI indicator
         const indicator = document.getElementById('mode-indicator');
         if (newMode === 'endless') {
             indicator.textContent = 'ENDLESS MODE - Play unlimited games!';
@@ -794,16 +791,13 @@ document.querySelectorAll('input[name="gamemode"]').forEach(radio => {
             indicator.textContent = 'CLASSIC MODE - Guess the 5-letter word in 6 tries!';
         }
         
-        // Start new game
         resetGame();
         closeSettings();
     });
 });
 
-// Reset button
 document.getElementById('reset-btn').addEventListener('click', resetGame);
 
-// Handle physical keyboard
 document.addEventListener('keydown', (e) => {
     if (gameState.gameOver) return;
 
@@ -816,26 +810,18 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// ========== INITIALIZATION ==========
-
-// Load settings and start game
 const settings = loadSettings();
 gameState.difficulty = checkDifficultyLockout() || settings.difficulty;
 gameState.gameMode = settings.gameMode || 'classic';
 updateDifficultyBadge();
 
-// Set correct radio button
 document.querySelector(`input[name="difficulty"][value="${gameState.difficulty}"]`).checked = true;
 document.querySelector(`input[name="gamemode"][value="${gameState.gameMode}"]`).checked = true;
 
-// Make functions globally accessible for onclick handlers
 window.revealWord = revealWord;
 window.replayGame = replayGame;
 
-// Start game
 initGame();
-
-// Add this function before initGame()
 
 async function fetchDailyWord(difficulty, isEndless = false) {
     try {
@@ -853,7 +839,6 @@ async function fetchDailyWord(difficulty, isEndless = false) {
         };
     } catch (error) {
         console.error('Error fetching word:', error);
-        // Fallback words if API fails
         const fallbackWords = {
             easy: [{ word: "APPLE", hint: "A common fruit" }],
             normal: [{ word: "BRAIN", hint: "Organ for thinking" }],
