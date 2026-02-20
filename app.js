@@ -17,9 +17,7 @@ const KEYBOARD_ROWS = [
     ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⌫']
 ];
 
-let keyboardState = {}; // Track letter states for keyboard colors
-
-// ========== LOCALSTORAGE MANAGEMENT ==========
+let keyboardState = {};
 
 function loadSettings() {
     const saved = localStorage.getItem('wordleSettings');
@@ -29,7 +27,6 @@ function loadSettings() {
         gameState.gameMode = settings.gameMode || 'classic';
         applyTheme(settings.theme || 'dark');
         
-        // Update mode indicator
         const indicator = document.getElementById('mode-indicator');
         if (gameState.gameMode === 'endless') {
             indicator.textContent = 'ENDLESS MODE - Play unlimited games!';
@@ -55,7 +52,7 @@ function getDifficultyLockout() {
 function setDifficultyLockout(difficulty) {
     const lockout = {
         difficulty: difficulty,
-        lockedUntil: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+        lockedUntil: Date.now() + (7 * 24 * 60 * 60 * 1000)
     };
     localStorage.setItem('difficultyLockout', JSON.stringify(lockout));
 }
@@ -69,12 +66,11 @@ function getArchive() {
 }
 
 function saveToArchive(gameData) {
-    if (gameState.isReplay) return; // Don't save replays
+    if (gameState.isReplay) return;
     
     const archive = getArchive();
     const today = new Date().toISOString().split('T')[0];
     
-    // Check if today's game already exists
     const existingIndex = archive.findIndex(item => 
         item.date === today && item.difficulty === gameState.difficulty
     );
@@ -94,7 +90,6 @@ function saveToArchive(gameData) {
         archive.push(entry);
     }
     
-    // Keep only last 365 days
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 365);
     const filtered = archive.filter(item => new Date(item.date) >= cutoffDate);
@@ -126,7 +121,6 @@ function updateStats(gameData) {
     if (gameData.won) {
         stats[diff].won++;
         
-        // Update streak
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
@@ -146,8 +140,6 @@ function updateStats(gameData) {
     localStorage.setItem('wordleStats', JSON.stringify(stats));
 }
 
-// ========== THEME MANAGEMENT ==========
-
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     const toggle = document.getElementById('theme-toggle');
@@ -165,8 +157,6 @@ function toggleTheme() {
     settings.theme = newTheme;
     saveSettings(settings);
 }
-
-// ========== DIFFICULTY MANAGEMENT ==========
 
 function updateDifficultyBadge() {
     const badge = document.getElementById('difficulty-badge');
@@ -213,7 +203,7 @@ function changeDifficulty(newDifficulty) {
     
     if (lockout && Date.now() < lockout.lockedUntil && lockout.difficulty !== newDifficulty) {
         showNotification('Difficulty is locked! You cannot change it until the lockout expires.');
-        checkDifficultyLockout(); // Restore correct selection
+        checkDifficultyLockout();
         return;
     }
     
@@ -226,20 +216,15 @@ function changeDifficulty(newDifficulty) {
     
     updateDifficultyBadge();
     
-    // Reload game with new difficulty
     if (!gameState.isReplay) {
         initGame();
     }
 }
 
-// ========== GAME INITIALIZATION ==========
-
 async function initGame(replayData = null) {
-    // Show loading
     const grid = document.getElementById('grid');
     grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading...</div>';
 
-    // Reset state
     keyboardState = {};
     gameState.currentRow = 0;
     gameState.guesses = ['', '', '', '', '', ''];
@@ -247,18 +232,15 @@ async function initGame(replayData = null) {
     gameState.gameOver = false;
     
     if (replayData) {
-        // Replay mode
         gameState.isReplay = true;
         gameState.replayDate = replayData.date;
         gameState.targetWord = replayData.word;
         gameState.hint = "Replaying past challenge";
         gameState.difficulty = replayData.difficulty;
     } else {
-        // Normal daily mode or endless mode
         gameState.isReplay = false;
         gameState.replayDate = null;
         
-        // Check if already played today (ONLY FOR DAILY MODE)
         const today = new Date().toISOString().split('T')[0];
         let todayGame = null;
 
@@ -270,7 +252,6 @@ async function initGame(replayData = null) {
         }
         
         if (todayGame) {
-            // Show completed game
             gameState.targetWord = todayGame.word;
             gameState.hint = "Already completed today!";
             gameState.guesses = todayGame.guesses ? [...todayGame.guesses] : [];
@@ -280,7 +261,6 @@ async function initGame(replayData = null) {
             gameState.currentRow = todayGame.attempts || 6;
             gameState.gameOver = true;
             
-            // Restore keyboard state
             gameState.guesses.forEach(guess => {
                 if (!guess) return;
                 for (let i = 0; i < guess.length; i++) {
@@ -316,7 +296,6 @@ async function initGame(replayData = null) {
     renderKeyboard();
 }
 
-// Render grid
 function renderGrid() {
     const grid = document.getElementById('grid');
     grid.innerHTML = '';
@@ -329,7 +308,6 @@ function renderGrid() {
             const cell = document.createElement('div');
             cell.className = 'cell';
             
-            // Show current guess
             if (row === gameState.currentRow) {
                 cell.textContent = gameState.currentGuess[col] || '';
                 if (gameState.currentGuess[col]) {
@@ -339,7 +317,6 @@ function renderGrid() {
                 const letter = gameState.guesses[row][col];
                 cell.textContent = letter;
                 
-                // Color coding with animation
                 if (letter === gameState.targetWord[col]) {
                     cell.classList.add('correct');
                     keyboardState[letter] = 'correct';
@@ -363,7 +340,6 @@ function renderGrid() {
     }
 }
 
-// Render keyboard
 function renderKeyboard() {
     const keyboard = document.getElementById('keyboard');
     keyboard.innerHTML = '';
@@ -377,7 +353,6 @@ function renderKeyboard() {
             keyButton.className = 'key';
             keyButton.textContent = key;
             
-            // Apply keyboard state colors
             if (keyboardState[key]) {
                 keyButton.classList.add(keyboardState[key]);
             }
@@ -394,7 +369,6 @@ function renderKeyboard() {
     });
 }
 
-// Handle key clicks
 function handleKeyClick(key) {
     if (gameState.gameOver) return;
     
@@ -413,13 +387,10 @@ function handleKeyClick(key) {
     }
 }
 
-// Submit guess
 async function submitGuess() {
-    // Validate word exists
     const isValid = await validateWord(gameState.currentGuess);
     if (!isValid) {
         showNotification('Not a valid word!');
-        // Shake animation
         const currentRow = document.querySelectorAll('.row')[gameState.currentRow];
         currentRow.classList.add('shake');
         setTimeout(() => currentRow.classList.remove('shake'), 500);
@@ -431,7 +402,6 @@ async function submitGuess() {
     const won = gameState.currentGuess === gameState.targetWord;
     gameState.currentRow++;
     
-    // Show hint on 4th guess (both classic and endless modes, but not replays)
     if (gameState.currentRow === 4 && !won && !gameState.isReplay) {
         document.getElementById('hint').textContent = `HINT: ${gameState.hint}`;
         document.getElementById('hint').style.display = 'block';
@@ -494,7 +464,7 @@ async function validateWord(word) {
         return data.valid;
     } catch (error) {
         console.error('Validation error:', error);
-        return true; // Allow if validation fails
+        return true;
     }
 }
 
@@ -508,22 +478,17 @@ function performReset() {
     document.getElementById('hint').style.display = 'none';
     
     if (gameState.gameMode === 'endless') {
-        // Get new word for endless mode
         initGame();
     } else {
-        // Just reset the board for classic mode
         renderGrid();
         renderKeyboard();
     }
 }
 
-// Reset Game Function
 function resetGame() {
     if (gameState.gameMode === 'endless') {
-        // No confirmation needed in endless mode
         performReset();
     } else {
-        // Ask for confirmation in classic mode
         showNotification('Are you sure you want to reset the current game?', [
             { text: 'Yes, Reset', callback: () => performReset() },
             { text: 'Cancel', secondary: true }
@@ -531,13 +496,12 @@ function resetGame() {
     }
 }
 
-// Endless Mode Stats
 function updateEndlessStats(won) {
     const stats = JSON.parse(localStorage.getItem('endlessStats') || '{"gamesPlayed": 0, "bestScore": 0}');
     stats.gamesPlayed++;
     
     if (won) {
-        const score = 100 - (gameState.currentRow * 10); // Higher score for fewer guesses
+        const score = 100 - (gameState.currentRow * 10);
         if (score > stats.bestScore) {
             stats.bestScore = score;
         }
@@ -549,8 +513,6 @@ function updateEndlessStats(won) {
 function getEndlessStats() {
     return JSON.parse(localStorage.getItem('endlessStats') || '{"gamesPlayed": 0, "bestScore": 0}');
 }
-
-// ========== UI MANAGEMENT ==========
 
 function openSettings() {
     const modal = document.getElementById('settings-modal');
@@ -566,7 +528,6 @@ function closeSettings() {
 }
 
 function switchTab(tabName) {
-    // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -574,11 +535,9 @@ function switchTab(tabName) {
         btn.classList.remove('active');
     });
     
-    // Show selected tab
     document.getElementById(`${tabName}-tab`).classList.add('active');
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     
-    // Refresh tab content
     if (tabName === 'archive') {
         renderArchive();
     } else if (tabName === 'stats') {
@@ -690,9 +649,6 @@ function renderStats() {
     `;
 }
 
-// ========== NOTIFICATIONS ==========
-
-
 function showNotification(message, actions = []) {
     const notification = document.getElementById('notification');
     const msgEl = document.getElementById('notification-message');
@@ -700,7 +656,6 @@ function showNotification(message, actions = []) {
     
     if (!notification || !msgEl || !actionsEl) return;
     
-    // Clear previous timeout if any
     if (window.notificationTimeout) {
         clearTimeout(window.notificationTimeout);
         window.notificationTimeout = null;
@@ -710,7 +665,6 @@ function showNotification(message, actions = []) {
     actionsEl.innerHTML = '';
     
     if (actions.length === 0) {
-        // Default close button if no actions provided
         const btn = document.createElement('button');
         btn.className = 'notification-btn secondary';
         btn.textContent = 'Close';
@@ -719,7 +673,6 @@ function showNotification(message, actions = []) {
         };
         actionsEl.appendChild(btn);
         
-        // Auto-hide after 3 seconds for simple messages
         window.notificationTimeout = setTimeout(() => {
             if (notification.classList.contains('active')) {
                 notification.classList.remove('active');
@@ -733,7 +686,6 @@ function showNotification(message, actions = []) {
             btn.onclick = () => {
                 notification.classList.remove('active');
                 if (action.callback) {
-                    // Small delay to allow UI to update before next action
                     setTimeout(action.callback, 100);
                 }
             };
@@ -743,8 +695,6 @@ function showNotification(message, actions = []) {
     
     notification.classList.add('active');
 }
-
-// ========== EFFECTS ==========
 
 function triggerConfetti() {
     const canvas = document.getElementById('confetti-canvas');
@@ -796,19 +746,14 @@ function triggerConfetti() {
     
     animate();
     
-    // Stop after 5 seconds
     setTimeout(() => {
         cancelAnimationFrame(animationId);
         canvas.style.display = 'none';
     }, 5000);
 }
 
-// ========== EVENT LISTENERS ==========
-
-// Settings button
 document.getElementById('settings-btn').addEventListener('click', openSettings);
 
-// Close modal
 document.querySelector('.close-btn').addEventListener('click', closeSettings);
 document.getElementById('settings-modal').addEventListener('click', (e) => {
     if (e.target.id === 'settings-modal') {
@@ -816,10 +761,8 @@ document.getElementById('settings-modal').addEventListener('click', (e) => {
     }
 });
 
-// Theme toggle
 document.getElementById('theme-toggle').addEventListener('change', toggleTheme);
 
-// Tab switching
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         switchTab(btn.dataset.tab);
