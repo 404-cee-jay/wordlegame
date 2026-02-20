@@ -235,6 +235,10 @@ function changeDifficulty(newDifficulty) {
 // ========== GAME INITIALIZATION ==========
 
 async function initGame(replayData = null) {
+    // Show loading
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading...</div>';
+
     // Reset state
     keyboardState = {};
     gameState.currentRow = 0;
@@ -427,8 +431,8 @@ async function submitGuess() {
     const won = gameState.currentGuess === gameState.targetWord;
     gameState.currentRow++;
     
-    // Show hint on 4th guess (only in classic mode)
-    if (gameState.currentRow === 4 && !won && gameState.gameMode === 'classic' && !gameState.isReplay) {
+    // Show hint on 4th guess (both classic and endless modes, but not replays)
+    if (gameState.currentRow === 4 && !won && !gameState.isReplay) {
         document.getElementById('hint').textContent = `HINT: ${gameState.hint}`;
         document.getElementById('hint').style.display = 'block';
     }
