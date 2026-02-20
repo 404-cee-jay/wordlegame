@@ -865,3 +865,33 @@ window.replayGame = replayGame;
 
 // Start game
 initGame();
+
+// Add this function before initGame()
+
+async function fetchDailyWord(difficulty, isEndless = false) {
+    try {
+        const endpoint = isEndless ? '/api/random-word' : '/api/daily-word';
+        const response = await fetch(`${endpoint}?difficulty=${difficulty}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch word');
+        }
+        
+        const data = await response.json();
+        return {
+            word: data.word.toUpperCase(),
+            hint: data.hint || "No hint available"
+        };
+    } catch (error) {
+        console.error('Error fetching word:', error);
+        // Fallback words if API fails
+        const fallbackWords = {
+            easy: [{ word: "APPLE", hint: "A common fruit" }],
+            normal: [{ word: "BRAIN", hint: "Organ for thinking" }],
+            hard: [{ word: "FJORD", hint: "Narrow inlet of sea" }]
+        };
+        const words = fallbackWords[difficulty] || fallbackWords.normal;
+        const selected = words[Math.floor(Math.random() * words.length)];
+        return selected;
+    }
+}
