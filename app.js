@@ -410,7 +410,18 @@ function handleKeyClick(key) {
 }
 
 // Submit guess
-function submitGuess() {
+async function submitGuess() {
+    // Validate word exists
+    const isValid = await validateWord(gameState.currentGuess);
+    if (!isValid) {
+        showNotification('Not a valid word!');
+        // Shake animation
+        const currentRow = document.querySelectorAll('.row')[gameState.currentRow];
+        currentRow.classList.add('shake');
+        setTimeout(() => currentRow.classList.remove('shake'), 500);
+        return;
+    }
+    
     gameState.guesses[gameState.currentRow] = gameState.currentGuess;
     
     const won = gameState.currentGuess === gameState.targetWord;
@@ -469,6 +480,17 @@ function submitGuess() {
                 showNotification(msg);
             }, 500);
         }
+    }
+}
+
+async function validateWord(word) {
+    try {
+        const response = await fetch(`/api/validate-word?word=${word}`);
+        const data = await response.json();
+        return data.valid;
+    } catch (error) {
+        console.error('Validation error:', error);
+        return true; // Allow if validation fails
     }
 }
 
